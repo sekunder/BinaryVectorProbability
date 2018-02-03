@@ -1,9 +1,9 @@
 """
-Probability
+BinaryVectorProbability
 
 Includes types and methods for representing probability distributions on the set of binary vectors.
 """
-module Probability
+module BinaryVectorProbability
 
 using NLopt
 

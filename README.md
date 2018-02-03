@@ -8,6 +8,14 @@
 
 Types and functions for manipulating probability distributions on `{0,1}^n`, the set of binary vectors of length `n`. Also provides tools for fitting parameters.
 
+## Installation and Usage
+
+Installation via `Pkg.clone`:
+
+`julia> Pkg.clone("https://github.com/sekunder/BinaryVectorProbability.jl.git")`
+
+`julia> using BinaryVectorProbability`
+
 ## Types
 
 The parent abstract type is `AbstractBinaryVectorDistribution`, all distributions are subtypes of this type.
