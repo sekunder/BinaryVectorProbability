@@ -4,12 +4,12 @@
     first_order_model(X, I; kwargs...)
 
 Returns a `BernoulliCodeDistribution` with `p_i` equal to the expected value of
-bit i.
+bit `i` in `X[I,:]`.
 
 """
-function first_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1); kwargs...)
+function first_order_model(X, I=1:size(X,1); kwargs...)
     mu = sum(X[I,:],2) / size(X,2)
-    return BernoulliCodeDistribution(mu[:], I; autocomment="first_order_model", kwargs...)
+    return BernoulliCodeDistribution(mu[:]; indices=I, autocomment="first_order_model", kwargs...)
 end
 
 """
@@ -25,7 +25,7 @@ keyword argument `algorithm` sets the algorithm:
  * `algorithm = :naive` uses the function `gradient_optimizer` in `optimizers.jl`
  * `algorithm = :LD_MMA` uses the MMA algorithm as described in the `NLopt` package. Don't use this one it's hella slow.
 """
-function second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1);
+function second_order_model(X, I=1:size(X,1);
     verbose=0, algorithm=:LD_LBFGS, kwargs...)
 
     if algorithm == :naive
@@ -34,7 +34,7 @@ function second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1);
         return _NLopt_second_order_model(X, I; verbose=verbose, algorithm=algorithm, kwargs...)
     end
 end
-function _Naive_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1); verbose=0, kwargs...)
+function _Naive_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     dkwargs = Dict(kwargs)
     Xselected = X[I,:]
     N_neurons,N_samples = size(Xselected)
@@ -46,13 +46,6 @@ function _Naive_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,
     K_X(J,g) = MPF_objective(Xselected, J, g)
     fun = (N_neurons > ISING_METHOD_THRESHOLD || pop!(dkwargs, :force_MPF, false)) ? "MPF" : "loglikelihood"
     objective = (fun == "loglikelihood") ? :max : :min
-    # fun = "loglikelihood"
-    # objective = :max
-    # if N_neurons > ISING_METHOD_THRESHOLD || pop!(dkwargs, :force_MPF, false)
-    #     K_X(J,g) = MPF_objective(Xselected, J, g)
-    #     fun = "MPF"
-    #     objective = :min
-    # end
 
     if verbose > 0
         println("second_order_model[gradient_optimizer]: setting $objective objective $fun")
@@ -70,7 +63,7 @@ function _Naive_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,
         (F_opt, J_opt, stop) = gradient_optimizer(K_X, Jseed[:]; objective=objective, verbose=verbose, dkwargs...)
     end
     J_opt = reshape(J_opt, N_neurons, N_neurons)
-    return IsingDistribution(J_opt, I; autocomment="second_order_model[gradient_optimizer|$fun]", opt_val=F_opt, opt_ret=stop, dkwargs...)
+    return IsingDistribution(J_opt; indices=I, autocomment="second_order_model[gradient_optimizer|$fun]", opt_val=F_opt, opt_ret=stop, dkwargs...)
     # return (F_opt, J_opt, stop, Jseed, mu, (fun == "loglikelihood" ? L_X : K_X))
 end
 function _NLopt_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1); verbose=0, kwargs...)
