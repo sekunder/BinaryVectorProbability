@@ -21,21 +21,20 @@ Abstract type used as placeholder.
 abstract type AbstractBinaryVectorDistribution end
 
 ################################################################################
-#### Miscellaneous functions and constants
+#### Common functions
 ################################################################################
 
+_NI(m) = error("Not implemented: $m")
 
 """
-    ISING_METHOD_THRESHOLD
+    n_bits(P::AbstractBinaryVectorDistribution)
 
-If N_neurons is greater than this number, switch from exact sampling to Gibbs
-sampling and use MPF instead of LogLikelihood to for the parameters.
+Size of the sample space
 """
-const ISING_METHOD_THRESHOLD = 20
-const METH_THRESH_WARN_KEY = 1
+n_bits(P::AbstractBinaryVectorDistribution) = _NI("n_bits($(typeof(P)))")
 
 """
-    binary_to_int(x::Union{BitVector, Vector{Bool}})
+    _binary_to_int(x::Union{BitVector, Vector{Bool}})
 
 Returns the integer that `x` represents. Will use `x.chunks` for `BitVector`s
 and the "dot product method" for `Vector{Bool}`s. Note that this will really
@@ -43,16 +42,8 @@ mess you up if `length(x) > 63`
 
 """
 _binary_to_int(x::BitVector) = Int(x.chunks[1])
-_binary_to_int(x::Vector{Bool}) = dot([2^i for i = 0:(length(x) - 1)], x)
+_binary_to_int(x::AbstractVector{Bool}) = dot([2^i for i = 0:(length(x) - 1)], x)
 
-# """
-#     get_pdf(P), get_cdf(P)
-#
-# Internally-used function to return a vector of the PDF of the distribution.
-# Naive implementation just calls pdf(P,x) over all possible x. Note that for this
-# internal method to work correctly, pdf(P,x) should cache the value in
-# P.cache[:pdf] as a side effect.
-# """
 """
     get_pdf(P)
 
@@ -153,6 +144,18 @@ function entropy2(P::AbstractBinaryVectorDistribution)
     end
     return P.metadata[:entropy2]
 end
+
+################################################################################
+#### Constants
+################################################################################
+"""
+    ISING_METHOD_THRESHOLD
+
+If N_neurons is greater than this number, switch from exact sampling to Gibbs
+sampling and use MPF instead of LogLikelihood to for the parameters.
+"""
+const ISING_METHOD_THRESHOLD = 20
+const METH_THRESH_WARN_KEY = 1
 
 ################################################################################
 #### Include definitions of concrete distributions, other functions

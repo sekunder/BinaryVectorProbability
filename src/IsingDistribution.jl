@@ -3,14 +3,14 @@
 
 Represents the Ising distribution `P(x) = 1/Z exp(1/2 x' J x - x' th)`
 """
-type IsingDistribution <: AbstractBinaryVectorDistribution
+mutable struct IsingDistribution <: AbstractBinaryVectorDistribution
     J::Matrix{Float64}
     theta::Vector{Float64}
-    I::Vector{Int}
+    # I::Vector{Int} # moving to metadata
     metadata::Dict{Any,Any}
     cache::Dict{Any,Any}
 
-    function IsingDistribution(J::Matrix{Float64}, theta::Vector{Float64}, I=1:length(theta); kwargs...)
+    function IsingDistribution(J::Matrix{Float64}, theta::Vector{Float64}; kwargs...)
         if size(J,1) != size(J,2)
             error("Ising Distribution: J must be square")
         end
@@ -19,26 +19,26 @@ type IsingDistribution <: AbstractBinaryVectorDistribution
         end
         Jsym = (J + J') / 2
         Jsym = Jsym - Diagonal(Jsym)
-        new(Jsym, theta, collect(I), Dict(kwargs), Dict(:pdf=>spzeros(2^length(theta))))
+        new(Jsym, theta, Dict(kwargs), Dict(:pdf=>spzeros(2^length(theta))))
     end
-    function IsingDistribution(Jtilde::Matrix{Float64}, I=collect(1:size(Jtilde,1)); kwargs...)
+    function IsingDistribution(Jtilde::Matrix{Float64}; kwargs...)
         theta = diag(Jtilde)
         Jnodiag = Jtilde - Diagonal(Jtilde)
         IsingDistribution(Jnodiag, theta, I; kwargs...)
-        # if size(Jtilde,1) != size(Jtilde,2)
-        #     error("Ising Distribution: J must be square")
-        # end
-        # theta = diag(Jtilde)
-        # Jnodiag = Jtilde - Diagonal(Jtilde)
-        # Jsym = (Jnodiag + Jnodiag') / 2
-        # new(Jsym, theta, collect(I), Dict(kwargs), Dict(:pdf=>spzeros(2^length(theta))))
     end
+end
+
+function show(io::IO, P::IsingDistribution)
+    println(io, "Ising Distribution")
+    println(io, "N_neurons: $(n_bits(P))")
+    println(io, "Indices:   $(P.I)")
+    show_metadata(io, P)
 end
 
 ################################################################################
 #### Miscellaneous computations/internal functions
 ################################################################################
-_E_Ising(ID::IsingDistribution, x::Union{Vector{Bool}, BitVector}) = dot(x, -0.5*ID.J*x + ID.theta)
+_E_Ising(ID::IsingDistribution, x::AbstractVector{Bool}) = dot(x, -0.5*ID.J*x + ID.theta)
 _get_energies(ID::IsingDistribution) = [_E_Ising(ID, digits(Bool,x,2,n_bits(ID))) for x in 0:(2^n_bits(ID) - 1)]
 function _get_Z(ID::IsingDistribution)
     if !haskey(ID.cache, :Z)
@@ -65,7 +65,6 @@ end
 function entropy2(P::IsingDistribution)
     if !haskey(P.metadata, :entropy2)
         energies = _get_energies(P)
-        # P.metadata[:entropy] = log(_get_Z(P)) + sum_kbn([exp(-_E_Ising(P,digits(Bool,2,x,n_bits(P)))) for x in 0:(2^n_bis(P) - 1)])
         P.metadata[:entropy2] = log2(_get_Z(P)) + log2(e) * sum_kbn(exp.(-energies) .* energies) / _get_Z(P)
     end
     return P.metadata[:entropy2]
@@ -73,35 +72,16 @@ end
 
 n_bits(P::IsingDistribution) = length(P.theta)
 
-function pdf(ID::IsingDistribution, x::Union{Vector{Bool},BitVector})
+function pdf(ID::IsingDistribution, x)
     if length(x) != n_bits(ID)
         error("IsingDistribution pdf: out of domain error")
     else
-        # if n_bits(ID) > ISING_METHOD_THRESHOLD
-        #     warn("Calling Ising PDF with $(n_bits(ID)) neurons. This might take a while. (Warning only displays once)", once=true, key=METH_THRESH_WARN_KEY)
-        # end
-        # idx = 1 + dot([2^i for i = 0:(n_bits(ID) - 1)], x)
         idx = 1 + _binary_to_int(x)
         if ID.cache[:pdf][idx] == 0.0
             ID.cache[:pdf][idx] = exp(-_E_Ising(ID,x)) / _get_Z(ID)
         end
         return ID.cache[:pdf][idx]
-        # if ID.cache[:pdf][idx] > 0.0
-        #     p = ID.cache[:pdf][idx]
-        # else
-        #     p = exp(-_E_Ising(ID, x)) / _get_Z(ID)
-        #     ID.cache[:pdf][idx] = p
-        # end
-        # return p
     end
-end
-
-
-function show(io::IO, P::IsingDistribution)
-    println(io, "Ising Distribution")
-    println(io, "N_neurons: $(n_bits(P))")
-    println(io, "Indices:   $(P.I)")
-    show_metadata(io, P)
 end
 
 
