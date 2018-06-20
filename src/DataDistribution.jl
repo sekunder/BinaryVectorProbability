@@ -23,7 +23,7 @@ type DataDistribution <: AbstractBinaryVectorDistribution
             error("Attempting to compute data distribution of data with >= 64 bit words")
         end
         P = sparsevec(_compute_Xtilde(X_subset)[:], ones(m), 2^N)
-        new(P/m, N, BitMatrix(X_subset), collect(I), Dict(kwargs), Dict())
+        new(P/m, N, BitMatrix(X_subset), Dict(kwargs), Dict(kwargs))
     end
 end
 _compute_Xtilde(X::AbstractMatrix{Bool}) = 1 .+ sum(X .* [2^i for i = 0:(size(X,1)-1)], 1)
