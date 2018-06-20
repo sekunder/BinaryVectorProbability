@@ -31,7 +31,7 @@ end
 function show(io::IO, P::IsingDistribution)
     println(io, "Ising Distribution")
     println(io, "N_neurons: $(n_bits(P))")
-    println(io, "Indices:   $(P.I)")
+    # println(io, "Indices:   $(P.I)")
     show_metadata(io, P)
 end
 
