@@ -140,7 +140,7 @@ function _NLopt_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,
     (optVal, J_opt, optReturn) = optimize(opt_Ising, Jseed[:])
     # final_val = F_X(J_opt, [])
     J_opt = reshape(J_opt, N_neurons, N_neurons)
-    return IsingDistribution(J_opt, I; autocomment="second_order_model[NLopt/$alg|$fun]", opt_val=optVal, opt_ret=optReturn, dkwargs...)
+    return IsingDistribution(J_opt; indices=I, autocomment="second_order_model[NLopt/$alg|$fun]", opt_val=optVal, opt_ret=optReturn, dkwargs...)
 end
 
 """
