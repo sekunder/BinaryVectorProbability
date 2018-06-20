@@ -1,7 +1,7 @@
 """
     IsingDistribution
 
-Represents the Ising distribution `P(x) = 1/Z exp(1/2 x' J x - x' th)`
+Represents the Ising distribution ``P(x) = 1/Z exp(1/2 x' J x - x' th)``
 """
 mutable struct IsingDistribution <: AbstractBinaryVectorDistribution
     J::Matrix{Float64}
@@ -24,7 +24,7 @@ mutable struct IsingDistribution <: AbstractBinaryVectorDistribution
     function IsingDistribution(Jtilde::Matrix{Float64}; kwargs...)
         theta = diag(Jtilde)
         Jnodiag = Jtilde - Diagonal(Jtilde)
-        IsingDistribution(Jnodiag, theta, I; kwargs...)
+        IsingDistribution(Jnodiag, theta; kwargs...)
     end
 end
 
