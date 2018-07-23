@@ -149,5 +149,5 @@ end
 Returns a `DataDistribution` based on the specified data and indices.
 """
 function data_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,1); kwargs...)
-    return DataDistribution(X, I; autocomment="data_model", indices=I, kwargs...)
+    return DataDistribution(X[I,:]; autocomment="data_model", indices=I, kwargs...)
 end
