@@ -101,7 +101,7 @@ end
     expectation_matrix(P)
 
 Returns a matrix with the expected values of bits and pairs of bits. Default
-behavior is to call get_pdf(P) and then loop through those values.
+behavior is to call `get_pdf(P)` and then loop through those values.
 
 """
 function expectation_matrix(P::AbstractBinaryVectorDistribution)
