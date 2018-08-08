@@ -5,9 +5,9 @@ Includes types and methods for representing probability distributions on the set
 """
 module BinaryVectorProbability
 
-using NLopt
+using NLopt, JLD
 
-import Base.show
+import Base: show, ==
 include("metadata.jl")
 
 ################################################################################
@@ -25,6 +25,9 @@ abstract type AbstractBinaryVectorDistribution end
 ################################################################################
 
 _NI(m) = error("Not implemented: $m")
+
+# override this definition for specific types of distributions
+==(P1::AbstractBinaryVectorDistribution, P2::AbstractBinaryVectorDistribution) = false
 
 """
     n_bits(P::AbstractBinaryVectorDistribution)
@@ -146,6 +149,47 @@ function entropy2(P::AbstractBinaryVectorDistribution)
 end
 
 ################################################################################
+#### File IO
+################################################################################
+"""
+    savedistribution(P::AbstractBinaryVectorDistribution, [filename]; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
+
+Save the given distribuution to disk using the `JLD` package. Returns the full path to the
+saved file. Default filename is
+`(typeof(P))* "." * Dates.format(now(),"YYYYMMDDHHMMSS") * ".jld"`
+
+If `dir` doesn't exist, will use `mkpath`. If file exists, contents will be overwritten.
+"""
+function savedistribution(P::AbstractBinaryVectorDistribution,
+    filename="$(typeof(P)).$(Dates.format(now(),"YYYYmmddHHMMSS"))";
+    dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
+
+    # _dir = abspath(dir)
+    if !ispath(dir)
+        mkpath(dir)
+    end
+    _fn = endswith(filename, ".jld") ? filename : filename * ".jld"
+    # save(joinpath(_dir, _fn), "P", P)
+    jldopen(joinpath(dir, _fn), "w") do file
+        addrequire(file, BinaryVectorProbability)
+        write(file, "P", P)
+    end
+    return joinpath(dir, _fn)
+end
+
+"""
+    loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
+
+Returns the distribution saved in `filename` as saved by `savedistribution`
+"""
+function loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
+    _fn = endswith(filename, ".jld") ? filename : filename * ".jld"
+    return load(joinpath(dir, _fn), "P")
+end
+
+
+
+################################################################################
 #### Constants
 ################################################################################
 """
@@ -169,7 +213,9 @@ include("optimizers.jl")
 include("fitters.jl")
 
 export AbstractBinaryVectorDistribution,
-       show, n_bits, random, expectation_matrix, entropy, entropy2, pdf, get_pdf, get_cdf,
+       show, ==,
+       n_bits, random, expectation_matrix, entropy, entropy2, pdf, get_pdf, get_cdf,
+       savedistribution, loaddistribution,
        DataDistribution, BernoulliCodeDistribution, IsingDistribution,
        first_order_model, second_order_model, data_model,
        loglikelihood, MPF_objective

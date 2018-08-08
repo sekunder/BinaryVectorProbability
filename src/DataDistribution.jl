@@ -32,6 +32,8 @@ _compute_Xtilde(X::BitMatrix) = [1 + Int(X[:,k].chunks[1]) for k = 1:size(X,2)]
 
 n_bits(DD::DataDistribution) = DD.N
 
+==(P1::DataDistribution, P2::DataDistribution) = P1.P == P2.P
+
 # pdf(Pr::DataDistribution, x::Vector{Bool}) = length(x) == n_bits(Pr) ? Pr.P[1 + dot([2^i for i = 0:(Pr.N - 1)], x)] : error("DataDistribution pdf: out of domain error")
 # pdf(Pr::DataDistribution, x::BitVector) = length(x) == n_bits(Pr) ? Pr.P[1 + Int(x.chunks[1])] : error("DataDistribution pdf: out of domain error")
 pdf(Pr::DataDistribution, x) = length(x) == n_bits(Pr) ? Pr.P[1 + _binary_to_int(x)] : error("DataDistribution pdf: out of domain error")

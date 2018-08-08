@@ -21,6 +21,8 @@ function show(io::IO, P::BernoulliCodeDistribution)
     show_metadata(io, P)
 end
 
+==(P1::BernoulliCodeDistribution, P2::BernoulliCodeDistribution) = P1.p == P2.p
+
 n_bits(B::BernoulliCodeDistribution) = length(B.p)
 
 function pdf(Pr::BernoulliCodeDistribution, x)

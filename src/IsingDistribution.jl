@@ -35,6 +35,8 @@ function show(io::IO, P::IsingDistribution)
     show_metadata(io, P)
 end
 
+==(P1::IsingDistribution, P2::IsingDistribution) = (P1.J == P2.J) && (P1.theta == P2.theta)
+
 ################################################################################
 #### Miscellaneous computations/internal functions
 ################################################################################
