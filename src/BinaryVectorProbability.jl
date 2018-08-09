@@ -7,7 +7,7 @@ module BinaryVectorProbability
 
 using NLopt, JLD
 
-import Base: show, ==
+import Base: show, ==, isequal, hash
 include("metadata.jl")
 
 ################################################################################
@@ -26,8 +26,10 @@ abstract type AbstractBinaryVectorDistribution end
 
 _NI(m) = error("Not implemented: $m")
 
-# override this definition for specific types of distributions
-==(P1::AbstractBinaryVectorDistribution, P2::AbstractBinaryVectorDistribution) = false
+# override this definition for specific types of distributions. This should represent
+# equality in the sense of P(x) = Q(x) for all x; other attributes shouldn't matter. on the
+# other hand, isequal is a more stringent check used for hashing.
+==(P::AbstractBinaryVectorDistribution, Q::AbstractBinaryVectorDistribution) = false
 
 """
     n_bits(P::AbstractBinaryVectorDistribution)
@@ -148,44 +150,6 @@ function entropy2(P::AbstractBinaryVectorDistribution)
     return P.metadata[:entropy2]
 end
 
-################################################################################
-#### File IO
-################################################################################
-"""
-    savedistribution(P::AbstractBinaryVectorDistribution, [filename]; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
-
-Save the given distribuution to disk using the `JLD` package. Returns the full path to the
-saved file. Default filename is
-`(typeof(P))* "." * Dates.format(now(),"YYYYMMDDHHMMSS") * ".jld"`
-
-If `dir` doesn't exist, will use `mkpath`. If file exists, contents will be overwritten.
-"""
-function savedistribution(P::AbstractBinaryVectorDistribution,
-    filename="$(typeof(P)).$(Dates.format(now(),"YYYYmmddHHMMSS"))";
-    dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
-
-    # _dir = abspath(dir)
-    if !ispath(dir)
-        mkpath(dir)
-    end
-    _fn = endswith(filename, ".jld") ? filename : filename * ".jld"
-    # save(joinpath(_dir, _fn), "P", P)
-    jldopen(joinpath(dir, _fn), "w") do file
-        addrequire(file, BinaryVectorProbability)
-        write(file, "P", P)
-    end
-    return joinpath(dir, _fn)
-end
-
-"""
-    loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
-
-Returns the distribution saved in `filename` as saved by `savedistribution`
-"""
-function loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
-    _fn = endswith(filename, ".jld") ? filename : filename * ".jld"
-    return load(joinpath(dir, _fn), "P")
-end
 
 
 
@@ -208,12 +172,13 @@ include("DataDistribution.jl")
 include("BernoulliCodeDistribution.jl")
 include("IsingDistribution.jl")
 
+include("fileio.jl")
 include("objective_functions.jl")
 include("optimizers.jl")
 include("fitters.jl")
 
 export AbstractBinaryVectorDistribution,
-       show, ==,
+       show, ==, isequal, hash,
        n_bits, random, expectation_matrix, entropy, entropy2, pdf, get_pdf, get_cdf,
        savedistribution, loaddistribution,
        DataDistribution, BernoulliCodeDistribution, IsingDistribution,
