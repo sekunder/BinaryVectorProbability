@@ -19,10 +19,11 @@ end
 #### File IO
 ################################################################################
 """
-    savedistribution(P::AbstractBinaryVectorDistribution; [filename], [dir])
+    savedistribution(P::AbstractBinaryVectorDistribution; [filename], [dir], [old])
 
 Save the given distribution to disk using the `JLD` package. Returns the full path to the
-saved file.
+saved file. Deletes file `old` if it exists in `dir`. By default `old` is `nothing` to avoid
+unnecessarily deleting and rewriting files.
 
 Default `filename` is `string(hash(P))`. Default `dir` is
 `Pkg.dir(BinaryVectorProbability)/saved`.
@@ -31,11 +32,18 @@ If `dir` doesn't exist, will use `mkpath`. If file exists, contents will be over
 """
 function savedistribution(P::AbstractBinaryVectorDistribution;
     filename=string(hash(P)),
-    dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
+    dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"),
+    old=nothing)
 
     # _dir = abspath(dir)
     if !ispath(dir)
         mkpath(dir)
+    end
+    if old != nothing
+        _old = endswith(old, ".jld") ? old : old * ".jld"
+        if isfile(joinpath(dir, _old))
+            rm(joinpath(dir, _old))
+        end
     end
     _fn = endswith(filename, ".jld") ? filename : filename * ".jld"
     # save(joinpath(_dir, _fn), "P", P)
@@ -48,8 +56,9 @@ end
 
 """
     loaddistribution(filename; [dir])
+    loaddistribution(h::UInt; [dir])
 
-Returns the distribution saved in `filename` as saved by `savedistribution`. Default `dir`
+Returns the distribution saved in `filename` (or identified by hash `h`) as saved by `savedistribution`. Default `dir`
 is `Pkg.dir(BinaryVectorProbability)/saved`
 """
 function loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbability"), "saved"))
