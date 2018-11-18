@@ -61,13 +61,14 @@ but the advantage is that this method does not involve computing the partition
 function Z.
 
 """
-function MPF_objective(X::Union{Matrix{Bool}, BitMatrix}, Jtilde::Vector, grad::Vector=[])
+function MPF_objective(X, Jtilde::Vector, grad::Vector=[])
     (N_neurons, N_samples) = size(X)
     Jtilde = reshape(Jtilde, N_neurons, N_neurons)
     theta = diag(Jtilde)
     J = Jtilde - Diagonal(Jtilde)
     DeltaX = 2 * X - 1 # this is Δx_l for each codeword x, for each index l
-    Kfull = exp.((-0.5 * DeltaX .* (J * X) + DeltaX .* theta)/2)
+    # Kfull = exp.((-0.5 * DeltaX .* (J * X) + DeltaX .* theta)/2)
+    Kfull = exp.((DeltaX .* theta - DeltaX .* (J * X)) / 2)
     K = sum_kbn(Kfull[:]) / N_samples
     if length(grad) > 0
         M = zeros(N_neurons, N_neurons)
