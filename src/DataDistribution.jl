@@ -9,7 +9,7 @@ representing codewords. The number of bits = `size(X,1)` must be less than 64.
 First sets `X = X[I,:]` then proceeds
 
 """
-type DataDistribution <: AbstractBinaryVectorDistribution
+mutable struct DataDistribution <: AbstractBinaryVectorDistribution
     P::SparseVector{Float64}
     N::Int
     X::BitMatrix

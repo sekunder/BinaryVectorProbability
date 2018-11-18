@@ -6,7 +6,7 @@ Distribution based on Schneidman et al 2011, where only "reliable" patterns are
 used to influence the coefficients in the max-ent distribution.
 
 """
-type ReliableInformationDistribution
+mutable struct ReliableInformationDistribution
     X::BitMatrix
     I::Vector{Int}
     metadata::Dict{Any,Any}
