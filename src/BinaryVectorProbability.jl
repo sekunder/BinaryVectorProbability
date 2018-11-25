@@ -5,7 +5,9 @@ Includes types and methods for representing probability distributions on the set
 """
 module BinaryVectorProbability
 
-using NLopt, JLD
+# using NLopt
+# using JLD
+using Optim
 
 import Base: show, ==, isequal, hash
 include("metadata.jl")

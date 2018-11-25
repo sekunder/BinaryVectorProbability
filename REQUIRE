@@ -1,3 +1,4 @@
 julia 0.6
 NLopt
 JLD
+Optim 0.15

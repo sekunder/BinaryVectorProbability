@@ -10,6 +10,8 @@ Types and functions for manipulating probability distributions on `{0,1}^n`, the
 
 ## Installation and Usage
 
+Currently only works with [Julia v0.6](https://julialang.org/downloads/oldreleases.html).
+
 Installation via `Pkg.clone`:
 
 `julia> Pkg.clone("https://github.com/sekunder/BinaryVectorProbability.jl.git")`
@@ -47,7 +49,7 @@ Given a binary matrix `X` representing sampled data, this package provides funct
 
 ## Objective functions
 
-This package requires the `NLopt` package for optimization computations.
+This package uses the [`Optim`](https://github.com/JuliaNLSolvers/Optim.jl/) package to fit parameters for the Ising model, using either log likelihood or minimum probability flow.
 
 ## Defining New Distributions
 

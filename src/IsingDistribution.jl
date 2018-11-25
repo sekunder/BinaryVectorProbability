@@ -40,7 +40,7 @@ end
 ################################################################################
 #### Miscellaneous computations/internal functions
 ################################################################################
-_E_Ising(ID::IsingDistribution, x::AbstractVector{Bool}) = dot(x, -0.5*ID.J*x + ID.theta)
+_E_Ising(ID::IsingDistribution, x::AbstractVector{Bool}) = dot(x, ID.theta - 0.5 * ID.J * x)
 _get_energies(ID::IsingDistribution) = [_E_Ising(ID, digits(Bool,x,2,n_bits(ID))) for x in 0:(2^n_bits(ID) - 1)]
 function _get_Z(ID::IsingDistribution)
     if !haskey(ID.cache, :Z)
