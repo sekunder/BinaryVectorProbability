@@ -185,6 +185,7 @@ export AbstractBinaryVectorDistribution,
        savedistribution, loaddistribution,
        DataDistribution, BernoulliCodeDistribution, IsingDistribution,
        first_order_model, second_order_model, data_model,
-       loglikelihood, MPF_objective
+       loglikelihood, MPF_objective,
+       negloglikelihood, dnegloglikelihood!, K_MPF, dK_MPF!
 
 end
