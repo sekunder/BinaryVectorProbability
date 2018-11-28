@@ -178,6 +178,7 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
         # error("second_order_model: No function selected for Optim.jl")
         if verbose > 0
             println("second_order_model[Optim/$(summary(alg))]: setting min objective function -$fun")
+        end
     end
 
     if verbose > 0
