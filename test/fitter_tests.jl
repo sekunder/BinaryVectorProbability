@@ -39,13 +39,13 @@ for (idx, N_neurons) in enumerate(neuron_numbers)
 
             print("  * Fitting using MPF...")
             tic()
-            Phat_MPF[idx, trial] = second_order_model(X, verbose=2, fun="MPF")
+            Phat_MPF[idx, trial] = second_order_model(X, verbose=0, fun="MPF")
             fit_time_MPF = toq()
             println("done: $fit_time_MPF s")
 
             print("  * Fitting using LL...")
             tic()
-            Phat_LL[idx, trial] = second_order_model(X, verbose=2, fun="loglikelihood")
+            Phat_LL[idx, trial] = second_order_model(X, verbose=0, fun="loglikelihood")
             fit_time_LL = toq()
             println("done:  $fit_time_LL s")
 
