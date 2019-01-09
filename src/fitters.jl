@@ -21,7 +21,8 @@ Some useful keywords particular to this function:
  * `J0` is the initial value used for optimization. Useful for debugging.
 
 keyword argument `algorithm` sets the algorithm:
- * `algorithm = :LD_LBFGS` Default is to use LDLBFGS algorithm in NLopt
+ * `algorithm = LBFGS()` default is to use the LBFGS algorithm in the `Optim` package.
+ * `algorithm = :LD_LBFGS` uses LBFGS algorithm in `NLopt`
  * `algorithm = :naive` uses the function `gradient_optimizer` in `optimizers.jl`
  * `algorithm = :LD_MMA` uses the MMA algorithm as described in the `NLopt` package. Don't use this one it's hella slow.
 """
@@ -161,24 +162,20 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
 
     K_X(J) = K_MPF(_X, J)
     dK_X!(G, J) = dK_MPF!(_X, G, J)
-    fun = pop!(dkwargs, :fun, "MPF")
+    fun = pop!(dkwargs, :fun, "-loglikelihood")
 
     alg = pop!(dkwargs, :algorithm, LBFGS())
 
     # Configure various options for Optim.jl
-    show_trace = pop!(dkwargs, :show_trace, verbose >= 2)
-    options = Optim.Options(show_trace=show_trace)
+    # show_trace = pop!(dkwargs, :show_trace, verbose >= 2)
+    options = Optim.Options(
+        show_trace = pop!(dkwargs, :show_trace, verbose >= 2),
+        f_tol = pop!(dkwargs, :f_tol, 0.0),
+        allow_f_increases = pop!(dkwargs, :allow_f_increases, false)
+        )
 
-    if fun == "MPF"
-        if verbose > 0
-            println("second_order_model[Optim/$(summary(alg))]: setting min objective function $fun")
-            # println("\tApproximte cost: $N_neurons * $N_samples per evaluation")
-        end
-    else
-        # error("second_order_model: No function selected for Optim.jl")
-        if verbose > 0
-            println("second_order_model[Optim/$(summary(alg))]: setting min objective function -$fun")
-        end
+    if verbose > 0
+        println("second_order_model[Optim/$(summary(alg))]: setting objective function $fun")
     end
 
     if verbose > 0
@@ -191,7 +188,7 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     res = fun == "MPF" ? optimize(K_X, dK_X!, J0, alg, options) : optimize(L_X, dL_X!, J0, alg, options)
     J_opt = Optim.minimizer(res) #TODO I can actually optimize over matrices, without need to reshape
     J_opt = reshape(J_opt, N_neurons, N_neurons)
-    P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, dkwargs...)
+    P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, minimizer_converged=converged(res), dkwargs...)
     hide_metadata!(P2, :opt_res)
     return P2
 end

@@ -1,12 +1,13 @@
 using BinaryVectorProbability
 using DataFrames
 
-Base.Random.srand(17)
+Base.Random.srand(170017)
 
 # N_neurons = 10
 # Jtrue = rand(N_neurons, N_neurons); Jtrue = (Jtrue + Jtrue')/2
 # P2 = IsingDistribution(Jtrue; comment="true distribution")
 
+#testing if i can recover moments properly
 neuron_numbers = 10:5:20
 N_trials = 10
 df = DataFrame(
@@ -84,4 +85,36 @@ for (idx, N_neurons) in enumerate(neuron_numbers)
                         fit_time_MPF, fit_time_LL])
         end
     end
+end
+
+# testing if I can fit data keeping H_1 > H_2 > H_n
+using Spikes
+Base.Random.srand(170017)
+
+funcs = [t -> 1 + k + (k/2) * sin(t + pi/k) + (k/2) * cos(t/k) for k = 1:10]
+TT = [inhomogeneous_poisson_process(f.(0:0.01:3000), 0.01) for f in funcs]
+Sp = SpikeTrains(TT)
+X = transpose(raster(Sp, 0.020))
+
+P_1 = first_order_model(X)
+P_2_MPF = second_order_model(X; verbose=2)
+P_2_L = second_order_model(X; verbose=2, allow_f_increases=true, J0=J0)
+P_2_thirdtime = second_order_model(X; verbose=2)
+P_2_fourthtime = second_order_model(X; verbose=2)
+P_N = data_model(X)
+
+H_1 = entropy2(P_1)
+H_2_MPF = entropy2(P_2_MPF)
+H_2_L = entropy2(P_2_L)
+H_2_thirdtime = entropy2(P_2_thirdtime)
+H_2_fourthtime = entropy(P_2_fourthtime)
+H_N = entropy2(P_N)
+
+mu_1 = expectation_matrix(P_1)
+mu_2_MPF = expectation_matrix(P_2_MPF)
+mu_2_L = expectation_matrix(P_2_L)
+mu_N = expectation_matrix(P_N)
+
+for P in [P_2_MPF, P_2_L, P_2_thirdtime, P_2_fourthtime]
+    println("convergence: $(Optim.converged(P.metadata[:opt_res]))\tentropy in bounds: $(H_N < entropy2(P) < H_1)")
 end
