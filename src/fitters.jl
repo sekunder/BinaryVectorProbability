@@ -188,7 +188,7 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     res = fun == "MPF" ? optimize(K_X, dK_X!, J0, alg, options) : optimize(L_X, dL_X!, J0, alg, options)
     J_opt = Optim.minimizer(res) #TODO I can actually optimize over matrices, without need to reshape
     J_opt = reshape(J_opt, N_neurons, N_neurons)
-    P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, minimizer_converged=converged(res), dkwargs...)
+    P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, minimizer_converged=Optim.converged(res), dkwargs...)
     hide_metadata!(P2, :opt_res)
     return P2
 end
