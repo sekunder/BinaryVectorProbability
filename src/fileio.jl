@@ -66,4 +66,4 @@ function loaddistribution(filename; dir=joinpath(Pkg.dir("BinaryVectorProbabilit
     _fn = basename(_fn)
     return load(joinpath(dir, _fn), "P")
 end
-loaddistribution(h::UInt; dir=joinpath(Pkg.dir("BinaryVectorProbability"),"saved")) = loadstimulus(string(h), dir=dir)
+loaddistribution(h::UInt; dir=joinpath(Pkg.dir("BinaryVectorProbability"),"saved")) = loaddistribution(string(h), dir=dir)
