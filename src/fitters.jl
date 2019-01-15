@@ -196,7 +196,7 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
         autocomment="second_order_model[Optim/$(summary(alg))|$fun]",
         minimizer_converged=Optim.converged(res),
         iterations=Optim.iterations(res),
-        iterations_limit_reached=iteration_limit_reached(res),
+        iterations_limit_reached=Optim.iteration_limit_reached(res),
         dkwargs...)
     # hide_metadata!(P2, :opt_res)
     return P2
