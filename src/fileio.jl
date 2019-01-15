@@ -49,6 +49,7 @@ function savedistribution(P::AbstractBinaryVectorDistribution;
     # save(joinpath(_dir, _fn), "P", P)
     jldopen(joinpath(dir, _fn), "w") do file
         addrequire(file, BinaryVectorProbability)
+        addrequire(file, Optim)
         write(file, "P", P)
     end
     return joinpath(dir, _fn)

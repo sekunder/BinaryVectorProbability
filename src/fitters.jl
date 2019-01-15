@@ -171,7 +171,8 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     options = Optim.Options(
         show_trace = pop!(dkwargs, :show_trace, verbose >= 2),
         f_tol = pop!(dkwargs, :f_tol, 0.0),
-        allow_f_increases = pop!(dkwargs, :allow_f_increases, false)
+        allow_f_increases = pop!(dkwargs, :allow_f_increases, false),
+        iterations = pop!(dkwargs, :iterations, 500)
         )
 
     if verbose > 0
@@ -188,8 +189,16 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     res = fun == "MPF" ? optimize(K_X, dK_X!, J0, alg, options) : optimize(L_X, dL_X!, J0, alg, options)
     J_opt = Optim.minimizer(res) #TODO I can actually optimize over matrices, without need to reshape
     J_opt = reshape(J_opt, N_neurons, N_neurons)
-    P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, minimizer_converged=Optim.converged(res), dkwargs...)
-    hide_metadata!(P2, :opt_res)
+    # P2 = IsingDistribution(J_opt; indices=I, autocomment="second_order_model[Optim/$(summary(alg))|$fun]", opt_res=res, minimizer_converged=Optim.converged(res), dkwargs...)
+    # FUN FACT JLD SEEMS TO BUG OUT WHEN YOU TRY TO SAVE THE RESULTS OBJECT (i.e. res). SO GLAD I WASTED ALL THAT FUCKING COMPUTATION TIME WHEEEEEE
+    P2 = IsingDistribution(J_opt;
+        indices=I,
+        autocomment="second_order_model[Optim/$(summary(alg))|$fun]",
+        minimizer_converged=Optim.converged(res),
+        iterations=Optim.iterations(res),
+        iterations_limit_reached=iteration_limit_reached(res),
+        dkwargs...)
+    # hide_metadata!(P2, :opt_res)
     return P2
 end
 
