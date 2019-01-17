@@ -175,13 +175,16 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
         iterations = pop!(dkwargs, :iterations, 500)
         )
 
-    if verbose > 0
-        println("second_order_model[Optim/$(summary(alg))]: setting objective function $fun")
-    end
+    # if verbose > 0
+    #     println("second_order_model[Optim/$(summary(alg))]: setting objective function $fun")
+    # end
 
     if verbose > 0
         println("second_order_model[Optim/$(summary(alg))]: running optimization")
+        println("  objective: $fun")
         println("  algorithm: $(summary(alg))")
+        println("  N_neurons: $(size(_X,1))")
+        println("  N_samples: $(size(_X,2))")
         #TODO potentially other information should be printed
     end
 
