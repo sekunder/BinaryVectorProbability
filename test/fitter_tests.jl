@@ -88,7 +88,7 @@ for (idx, N_neurons) in enumerate(neuron_numbers)
 end
 
 # testing if I can fit data keeping H_1 > H_2 > H_n
-using Spikes
+using Spikes, Optim
 Base.Random.srand(170017)
 
 funcs = [t -> 1 + k + (k/2) * sin(t + pi/k) + (k/2) * cos(t/k) for k = 1:10]
@@ -98,7 +98,11 @@ X = transpose(raster(Sp, 0.020))
 
 P_1 = first_order_model(X)
 P_2_MPF = second_order_model(X; verbose=2)
+J0 = P_2_MPF.metadata[:J0]
 P_2_L = second_order_model(X; verbose=2, allow_f_increases=true, J0=J0)
+P_2_different_m = second_order_model(X; verbose=2, J0=J0, algorithm=LBFGS(m=20))
+P_2_different_m_increase = second_order_model(X; verbose=2, J0=J0, algorithm=LBFGS(m=20), allow_f_increases=true)
+P_2_large_m = second_order_model(X; verbose=2, J0=J0, algorithm=LBFGS(m=40))
 P_2_thirdtime = second_order_model(X; verbose=2)
 P_2_fourthtime = second_order_model(X; verbose=2)
 P_N = data_model(X)

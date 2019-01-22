@@ -155,13 +155,17 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     J0 = (J0 + J0')/2
     J0 = pop!(dkwargs, :J0, J0)
 
-
+    J_prev = similar(J0)
     mu_X = _X * _X' / N_samples
-    L_X(J) = negloglikelihood(_X, J)
-    dL_X!(G, J) = dnegloglikelihood!(_X, G, J; mu_X=mu_X)
+    buf = [IsingDistribution(J0), _X, mu_X]
+    L_X(J) = negloglikelihood(J, J_prev, buf)
+    dL_X!(G, J) = dnegloglikelihood!(G, J, J_prev, buf)
+    # L_X(J) = negloglikelihood(_X, J)
+    # dL_X!(G, J) = dnegloglikelihood!(_X, G, J; mu_X=mu_X)
 
-    K_X(J) = K_MPF(_X, J)
-    dK_X!(G, J) = dK_MPF!(_X, G, J)
+
+    # K_X(J) = K_MPF(_X, J)
+    # dK_X!(G, J) = dK_MPF!(_X, G, J)
     fun = pop!(dkwargs, :fun, "-loglikelihood")
 
     alg = pop!(dkwargs, :algorithm, LBFGS())

@@ -108,34 +108,28 @@ Computes negative LogLikelihood of the data given the Ising distribution generat
 with `Optim.jl` package
 
 """
-function negloglikelihood(X, Jtilde)
-    (N_neurons, N_samples) = size(X)
-
-    Jtilde = reshape(Jtilde, N_neurons,N_neurons)
-    P = IsingDistribution(Jtilde)
-
-    return log(_get_Z(P)) + sum_kbn([_E_Ising(P, X[:,i]) for i = 1:N_samples]) / N_samples
+function negloglikelihood(Jtilde, J_prev, buf)
+    (N_neurons, N_samples) = size(buf[2])
+    negloglikelihood_common!(Jtilde, J_prev, buf)
+    return log(_get_Z(buf[1])) + sum_kbn([_E_Ising(buf[1], buf[2][:,i]) for i = 1:N_samples]) / N_samples
 end
-function dnegloglikelihood!(X, G, Jtilde; mu_X=(X * X')/size(X,2))
-    (N_neurons, N_samples) = size(X)
-
-    Jtilde = reshape(Jtilde, N_neurons,N_neurons)
-    P = IsingDistribution(Jtilde)
-
-    mu_P = expectation_matrix(P)
-    # mu_X = X * X' / N_samples
-
-    ndL = mu_P - mu_X
+function dnegloglikelihood!(G, Jtilde, J_prev, buf)
+    (N_neurons, N_samples) = size(buf[2])
+    negloglikelihood_common!(Jtilde, J_prev, buf)
+    ndL = expectation_matrix(buf[1]) - buf[3]
     ndL[1:(N_neurons+1):end] = -diag(ndL)
     G[:] = ndL[:]
 end
-function L_X_common!(J, J_prev, buf)
-    # buf is an array where buf[1] will be an IsingDistribution object, buf[2] will be the
-    # number of neurons (for reshaping J)
+function negloglikelihood_common!(J, J_prev, buf)
+    # buf[1] = P
+    # buf[2] = X
+    # buf[3] = mu_X
     if J != J_prev
         copy!(J_prev, J)
-        n = buf[2]
-        buf[1] = IsingDistribution(reshape(J, n, n))
+        buf[1] = IsingDistribution(reshape(J, size(buf[3])))
+        # since the first call to pdf will compute Z, which in turn will cache all the
+        # energy values, there's not really any need to do anything special
+        # here
     end
 end
 
