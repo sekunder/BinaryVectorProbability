@@ -200,8 +200,9 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
         minimizer_converged=Optim.converged(res),
         iterations=Optim.iterations(res),
         iterations_limit_reached=Optim.iteration_limit_reached(res),
+        J0=Optim.initial_state(res),
         dkwargs...)
-    # hide_metadata!(P2, :opt_res)
+    hide_metadata!(P2, :J0)
     return P2
 end
 
