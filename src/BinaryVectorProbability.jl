@@ -114,9 +114,9 @@ behavior is to call `get_pdf(P)` and then loop through those values.
 function expectation_matrix(P::AbstractBinaryVectorDistribution)
     em = zeros(n_bits(P), n_bits(P))
     p = get_pdf(P)
-    for k = 0:(2^n_bits(P) - 1)
-        x = digits(Bool, k, 2, n_bits(P))
-        em += p[k+1] * (x * x')
+    for k in sortperm(p)
+        x = digits(Bool, k-1, 2, n_bits(P))
+        em += p[k] * (x * x')
     end
     return em
 end
@@ -133,7 +133,7 @@ function entropy(P::AbstractBinaryVectorDistribution)
         #MAYBEDO figure out how the get! function works. I assume since it's a
         #function call, it'll evalute all arguments first. But, if that's not
         #the case this could be cleaned up, I suppose.
-        P.metadata[:entropy] = -sum_kbn([p * log(p) for p in filter(x -> 0 < x < 1, get_pdf(P))])
+        P.metadata[:entropy] = -sum_kbn([p * log(p) for p in get_pdf(P) if 0.0 < p < 1.0])
     end
     return P.metadata[:entropy]
 end
@@ -147,7 +147,7 @@ metadata value.
 """
 function entropy2(P::AbstractBinaryVectorDistribution)
     if !haskey(P.metadata, :entropy2)
-        P.metadata[:entropy2] = -sum_kbn([p * log2(p) for p in filter(x -> 0 < x < 1, get_pdf(P))])
+        P.metadata[:entropy2] = -sum_kbn([p * log2(p) for p in get_pdf(P) if 0.0 < p < 1.0])
     end
     return P.metadata[:entropy2]
 end

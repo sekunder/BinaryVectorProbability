@@ -148,7 +148,7 @@ function _NLopt_second_order_model(X::Union{Matrix{Bool},BitMatrix}, I=1:size(X,
 end
 function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     dkwargs = Dict(kwargs)
-    _X = X[I,:]
+    _X = sortcols(X[I,:]) # sorting columns for branch prediction and memory access
     N_neurons,N_samples = size(_X)
 
     J0 = rand(N_neurons,N_neurons)

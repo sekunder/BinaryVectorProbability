@@ -19,7 +19,7 @@ mutable struct IsingDistribution <: AbstractBinaryVectorDistribution
         end
         Jsym = (J + J') / 2
         Jsym = Jsym - Diagonal(Jsym)
-        new(Jsym, theta, Dict(kwargs), Dict(:pdf=>spzeros(2^length(theta))))
+        new(Jsym, theta, Dict(kwargs), Dict(:pdf=>spzeros(2^length(theta)), :energy=>spzeros(2^length(theta))))
     end
     function IsingDistribution(Jtilde::Matrix{Float64}; kwargs...)
         theta = diag(Jtilde)
@@ -40,12 +40,42 @@ end
 ################################################################################
 #### Miscellaneous computations/internal functions
 ################################################################################
-_E_Ising(ID::IsingDistribution, x::AbstractVector{Bool}) = dot(x, ID.theta - 0.5 * ID.J * x)
+"""
+    initialize_cache!(ID)
+
+Checks if `ID.cache[:pdf]` and `ID.cache[:energy]` exist; if not, initializes those values to empty sparse vectors of length `2^n_bits(ID)`
+"""
+function initialize_cache!(ID)
+    if !haskey(ID.cache, :pdf)
+        ID.cache[:pdf] = spzeros(2^n_bits(ID))
+    end
+    if !haskey(ID.cache, :energy)
+        ID.cache[:energy] = spzeros(2^n_bits(ID))
+    end
+end
+
+"""
+    _E_Ising(ID, x)
+
+The Ising energy of state `x`, given by `x' θ - 1/2 x' J x`. Stores value in cache.
+"""
+function _E_Ising(ID::IsingDistribution, x::AbstractVector{Bool})
+    idx = 1 + _binary_to_int(x)
+    if ID.cache[:energy][idx] == 0.0
+        ID.cache[:energy][idx] = dot(x, ID.theta - 0.5 * ID.J * x)
+    end
+    return ID.cache[:energy][idx]
+end
+"""
+    _get_energies(ID)
+
+Returns an array of the Ising energy of each state.
+"""
 _get_energies(ID::IsingDistribution) = [_E_Ising(ID, digits(Bool,x,2,n_bits(ID))) for x in 0:(2^n_bits(ID) - 1)]
 function _get_Z(ID::IsingDistribution)
     if !haskey(ID.cache, :Z)
         if n_bits(ID) > ISING_METHOD_THRESHOLD
-            warn("Computing Z for Ising PDF with $(n_bits(ID)) neurons. This might take a while. (Warning only displays once)", once=true, key=METH_THRESH_WARN_KEY)
+            warn("Computing Z for Ising PDF with $(n_bits(ID)) neurons. This might take a while, and numerical accuracy is not guaranteed. (Warning only displays once)", once=true, key=METH_THRESH_WARN_KEY)
         end
         # ID.cache[:Z] = sum_kbn([exp(-_E_Ising(ID, digits(Bool, k, 2, n_bits(ID)))) for k = 0:(2^n_bits(ID) - 1)])
         ID.cache[:Z] = sum_kbn(exp.(-_get_energies(ID)))
