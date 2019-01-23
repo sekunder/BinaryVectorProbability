@@ -98,7 +98,7 @@ end
 
 
 ################################################################################
-### ISING OBJECTIVE FUNCTIONS - NLopt.jl
+### ISING OBJECTIVE FUNCTIONS - Optim.jl
 ################################################################################
 """
     negloglikelihood(X, Jtilde)
@@ -151,7 +151,6 @@ function K_MPF(X, Jtilde)
     Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
     return sum_kbn(Kfull) / N_samples
 end
-
 """
     dK_MPF!(X, G, Jtilde)
 
