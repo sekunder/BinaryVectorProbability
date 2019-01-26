@@ -135,52 +135,67 @@ end
 
 
 """
-    K_MPF(X, Jtilde)
+    K_MPF(J, J_prev, buf)
 
-Computes the function ``K_X`` for data `X` and parameters `Jtilde`. This version is meant
+Computes the function ``K_X`` for data in `buf[1]` and parameters `J`. This version is meant
 for use with the `Optim` package, which in particular uses a separate function for the
 optimization function and gradient function. See also `dK_MPF!`
 
 """
-function K_MPF(X, Jtilde)
-    N_neurons, N_samples = size(X)
-    J = reshape(Jtilde, N_neurons, N_neurons)
-    theta = diag(J)
-    J[1:(N_neurons+1):end] = 0.0
-    ΔX = 2X - 1 # flip bits in X
-    Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
-    return sum_kbn(Kfull) / N_samples
+function K_MPF(J, J_prev, buf)
+    # N_neurons, N_samples = size(X)
+    # J = reshape(Jtilde, N_neurons, N_neurons)
+    # theta = diag(J)
+    # J[1:(N_neurons+1):end] = 0.0
+    # ΔX = 2X - 1 # flip bits in X
+    # Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
+    # return sum_kbn(Kfull) / N_samples
+    K_common!(J, J_prev, buf)
+    # N_samples = size(buf[1], 2)
+    return sum_kbn(buf[3]) # / N_samples
 end
 """
-    dK_MPF!(X, G, Jtilde)
+    dK_MPF!(G, J, J_prev, buf)
 
-Computes the gradient of `K_MPF` and modifies `G` in-place.
+Computes the gradient of `K_MPF(J, J_prev, buf)` and modifies `G` in-place.
 """
-function dK_MPF!(X, G, Jtilde)
-    N_neurons, N_samples = size(X)
-    J = reshape(Jtilde, N_neurons, N_neurons)
-    theta = diag(J)
-    J[1:(N_neurons+1):end] = 0.0
-    ΔX = 2X - 1 # flip bits in X
-    Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
-    # M = zeros(N_neurons, N_neurons)
-    # M[1:(N_neurons+1):N_neurons] = sum(0.5 * ΔX .* Kfull, 2)
-    DK = Kfull .* ΔX
-    dJ = -0.5 * (Kfull .* ΔX) * X'
+function dK_MPF!(G, J, J_prev, buf)
+    # N_neurons, N_samples = size(X)
+    # J = reshape(Jtilde, N_neurons, N_neurons)
+    # theta = diag(J)
+    # J[1:(N_neurons+1):end] = 0.0
+    # ΔX = 2X - 1 # flip bits in X
+    # Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
+    # # M = zeros(N_neurons, N_neurons)
+    # # M[1:(N_neurons+1):N_neurons] = sum(0.5 * ΔX .* Kfull, 2)
+    # DK = Kfull .* ΔX
+    # dJ = -0.5 * (Kfull .* ΔX) * X'
+    # dJ = (dJ + dJ') / 2
+    # dJ[1:(N_neurons+1):end] = 0.5 * sum(DK, 2)
+    # G[:] = dJ[:] / N_samples
+    K_common!(J, J_prev, buf)
+    N_neurons, N_samples = size(buf[1])
+    DK = buf[3] .* buf[2]
+    dJ = -0.5 * DK * buf[1]'
     dJ = (dJ + dJ') / 2
     dJ[1:(N_neurons+1):end] = 0.5 * sum(DK, 2)
-    G[:] = dJ[:] / N_samples
+    G[:] = dJ[:] # / N_samples
 end
-function Kf_and_DX!(Jtilde, last_J, Kf_X_DX)
-    if J != last_J
-        last_J[:] = J[:] # Copy the last value of J over
-        #TODO sort this out if necessary.
+function K_common!(J, J_prev, buf)
+    # buf[1] = X # fixed ahead of time
+    # buf[2] = ΔX # fixed ahead of time
+    # buf[3] = Kfull / N_samples
+    # buf[4] = theta
+    # buf[5] = J (no diagonal)
+    if J != J_prev
+        copy!(J_prev, J)
 
-        N_neurons, N_samples = size(X)
-        J = reshape(Jtilde, N_neurons, N_neurons)
+        N_neurons, N_samples = size(buf[1])
+        J = reshape(J, N_neurons, N_neurons)
         theta = diag(J)
         J[1:(N_neurons+1):N_neurons] = 0.0
-        ΔX = 2X - 1 # flip bits in X
-        Kfull = exp.(0.5 * (ΔX .* theta - ΔX .* (J * X)))
+        buf[4] = theta
+        buf[5] = J
+        buf[3] = exp.(0.5 * (buf[2] .* theta - buf[2] .* (J * buf[1]))) / N_samples
     end
 end

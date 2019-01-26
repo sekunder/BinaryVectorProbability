@@ -15,10 +15,10 @@ end
 """
     second_order_model(X, I; kwargs...)
 
-Returns an `IsingDistribution` which is fit to the pairwise correlations in `X`.
+Returns an `IsingDistribution` which is fit to the pairwise correlations in `X[I,:]`.
 
 Some useful keywords particular to this function:
- * `J0` is the initial value used for optimization. Useful for debugging.
+ * `J0` is the initial value used for optimization
 
 keyword argument `algorithm` sets the algorithm:
  * `algorithm = LBFGS()` default is to use the LBFGS algorithm in the `Optim` package.
@@ -155,18 +155,25 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     J0 = (J0 + J0')/2
     J0 = pop!(dkwargs, :J0, J0)
 
-    J_prev = similar(J0)
+    J_prev_L = similar(J0)
     mu_X = _X * _X' / N_samples
-    buf = [IsingDistribution(J0), _X, mu_X]
-    L_X(J) = negloglikelihood(J, J_prev, buf)
-    dL_X!(G, J) = dnegloglikelihood!(G, J, J_prev, buf)
+    buf_L = [IsingDistribution(J0), _X, mu_X]
+    L_X(J) = negloglikelihood(J, J_prev_L, buf_L)
+    dL_X!(G, J) = dnegloglikelihood!(G, J, J_prev_L, buf_L)
     # L_X(J) = negloglikelihood(_X, J)
     # dL_X!(G, J) = dnegloglikelihood!(_X, G, J; mu_X=mu_X)
 
-
+    J_prev_K = similar(J0)
+    J0_K = similar(J0)
+    J0_K[:] = J0[:]
+    J0_K[1:(N_neurons+1):end] = 0.0
+    buf_K = [_X, 2 * _X - 1, similar(_X, Float64), diag(J0), J0_K]
+    K_X(J) = K_MPF(J, J_prev_K, buf_K)
+    dK_X!(G, J) = dK_MPF!(G, J, J_prev_K, buf_K)
     # K_X(J) = K_MPF(_X, J)
     # dK_X!(G, J) = dK_MPF!(_X, G, J)
-    fun = pop!(dkwargs, :fun, "-loglikelihood")
+
+    # fun = pop!(dkwargs, :fun, "-loglikelihood")
 
     alg = pop!(dkwargs, :algorithm, LBFGS())
 
@@ -174,24 +181,21 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     # show_trace = pop!(dkwargs, :show_trace, verbose >= 2)
     options = Optim.Options(
         show_trace = pop!(dkwargs, :show_trace, verbose >= 2),
+        x_tol = pop!(dkwargs, :x_tol, 0.0),
         f_tol = pop!(dkwargs, :f_tol, 0.0),
         allow_f_increases = pop!(dkwargs, :allow_f_increases, false),
         iterations = pop!(dkwargs, :iterations, 500),
         show_every = pop!(dkwargs, :show_every, 10)
         )
 
-    # if verbose > 0
-    #     println("second_order_model[Optim/$(summary(alg))]: setting objective function $fun")
-    # end
-
     if verbose > 0
-        println("second_order_model[Optim/$(summary(alg))]: running optimization")
-        println("  objective: $fun")
+        println("second_order_model[Optim/$(summary(alg))]: preparing to run optimization")
+        # println("  objective: $fun")
         print("  algorithm: $(summary(alg))")
         if typeof(alg) <: LBFGS
             println(" m = $(alg.m)")
         else
-            [println()]
+            println()
         end
         println("  N_neurons: $(size(_X,1))")
         println("  N_samples: $(size(_X,2))")
@@ -199,18 +203,45 @@ function _Optim_second_order_model(X, I=1:size(X,1); verbose=0, kwargs...)
     end
 
     # run the optimization using Optim.jl
-    res = fun == "MPF" ? optimize(K_X, dK_X!, J0, alg, options) : optimize(L_X, dL_X!, J0, alg, options)
-    J_opt = Optim.minimizer(res) #TODO I can actually optimize over matrices, without need to reshape
-    J_opt = reshape(J_opt, N_neurons, N_neurons)
+    # res = fun == "MPF" ? optimize(K_X, dK_X!, J0, alg, options) : optimize(L_X, dL_X!, J0, alg, options)
+    # J_opt = Optim.minimizer(res)
+    # J_opt = reshape(J_opt, N_neurons, N_neurons)
+
+    # TODO New plan: try using L then K, or K then L, or alternating. K is actually convex,
+    # so it'll always converge, but there's no guarantee it'll be "correct". So K, L or L,
+    # K, L should hopefully get us away from local minima and get us what we're after.
+
+    println("Using Minimum Probability Flow to estimate parameters...")
+    tic()
+    res_K = optimize(K_X, dK_X!, J0, alg, options)
+    t_K = toq()
+    J_K = Optim.minimizer(res_K)
+    println("Done! MPF $(Optim.converged(res_K) ? "did" : "did not") converge in $t_K s")
+    show(res_K)
+    println()
+
+    println("Maximizing likelihood...")
+    tic()
+    res_L = optimize(L_X, dL_X!, J_K, alg, options)
+    t_L = toq()
+    println("Done! MLE $(Optim.converged(res_L) ? "did" : "did not") converge in $t_L s")
+    show(res_L)
+    println()
+    J_opt = reshape(Optim.minimizer(res_L), N_neurons, N_neurons)
     P2 = IsingDistribution(J_opt;
         indices=I,
-        autocomment="second_order_model[Optim/$(summary(alg))|$fun]",
-        minimizer_converged=Optim.converged(res),
-        iterations=Optim.iterations(res),
-        iterations_limit_reached=Optim.iteration_limit_reached(res),
-        J0=Optim.initial_state(res),
+        autocomment="second_order_model[Optim/$(summary(alg))|MPF->MLE]",
+        MPF_converged=Optim.converged(res_K),
+        MLE_converged=Optim.converged(res_L),
+        MPF_iterations=Optim.iterations(res_K),
+        MLE_iterations=Optim.iterations(res_L),
+        MLE_iterations_limit_reached=Optim.iteration_limit_reached(res_L),
+        J0_K=Optim.initial_state(res_K),
+        J0_L=Optim.initial_state(res_L),
         dkwargs...)
-    hide_metadata!(P2, :J0)
+    hide_metadata!(P2, :J0_L)
+    hide_metadata!(P2, :J0_K)
+
     return P2
 end
 
