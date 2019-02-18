@@ -108,28 +108,42 @@ Computes negative LogLikelihood of the data given the Ising distribution generat
 with `Optim.jl` package
 
 """
-function negloglikelihood(Jtilde, J_prev, buf)
-    (N_neurons, N_samples) = size(buf[2])
-    negloglikelihood_common!(Jtilde, J_prev, buf)
-    return log(_get_Z(buf[1])) + sum_kbn([_E_Ising(buf[1], buf[2][:,i]) for i = 1:N_samples]) / N_samples
+function negloglikelihood(W, W_prev, buf)
+    negloglikelihood_common!(W, W_prev, buf)
+    N = size(buf[1], 2)
+    return log(get_Z(buf[3])) - sum_kbn([F_Ising(buf[3], buf[1][:,α]) for α = 1:N]) / N
 end
-function dnegloglikelihood!(G, Jtilde, J_prev, buf)
-    (N_neurons, N_samples) = size(buf[2])
-    negloglikelihood_common!(Jtilde, J_prev, buf)
-    ndL = expectation_matrix(buf[1]) - buf[3]
-    ndL[1:(N_neurons+1):end] = -diag(ndL)
-    G[:] = ndL[:]
+function dnegloglikelihood!(G, W, W_prev, buf)
+    negloglikelihood_common!(W, W_prev, buf)
+    #TODO compute gradient, modify G in place
+    mu_P = expectation_matrix(buf[3])
+    G[:] = lt2v(mu_P) - lt2v(buf[2])
 end
-function negloglikelihood_common!(J, J_prev, buf)
-    # buf[1] = P
-    # buf[2] = X
-    # buf[3] = mu_X
-    if J != J_prev
-        copy!(J_prev, J)
-        buf[1] = IsingDistribution(reshape(J, size(buf[3])))
-        # since the first call to pdf will compute Z, which in turn will cache all the
-        # energy values, there's not really any need to do anything special
-        # here
+function Hnegloglikelihood!(H, W, W_prev, buf)
+    negloglikelihood_common!(W, W_prev, buf)
+    # if we use lt2v on mu_P and take its outer product, we'll get the matrix of
+    # E[x_s]E[x_t] that we subtract from E[x_s x_t] to get the Hessian matrix. So the only
+    # thing we need to be careful about is making sure we line up terms correctly.
+    N_neurons = n_bits(buf[3])
+    p = get_pdf(buf[3])
+    for k in sortperm(p)
+        x = digits(Bool, k-1, 2, N_neurons)
+        xx = lt2v(x * x')
+        H[:] = H[:] + (p[k] * (xx * xx'))[:]
+    end
+    mm = lt2v(buf[4])
+    H[:] = H[:] - (mm * mm')[:]
+end
+function negloglikelihood_common!(W, W_prev, buf)
+    # buf[1] = X
+    # buf[2] = mu_X
+    # buf[3] = P
+    # buf[4] = mu_P
+    if W != W_prev
+        copy!(W_prev, W)
+        #TODO set the appropriate buffer entry to be P
+        buf[3] = IsingDistribution(W)
+        buf[4] = expectation_matrix(buf[3])
     end
 end
 

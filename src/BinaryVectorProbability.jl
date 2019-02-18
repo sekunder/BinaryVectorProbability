@@ -6,7 +6,7 @@ Includes types and methods for representing probability distributions on the set
 module BinaryVectorProbability
 
 # using NLopt
-using JLD
+# using JLD
 using Optim
 
 import Base: show, ==, isequal, hash
@@ -52,6 +52,13 @@ _binary_to_int(x::BitVector) = Int(x.chunks[1])
 _binary_to_int(x::AbstractVector{Bool}) = dot([2^i for i = 0:(length(x) - 1)], x)
 
 """
+    pdf(P)
+
+Returns the function `x -> pdf(P, x)`
+"""
+pdf(P::AbstractBinaryVectorDistribution) = x -> pdf(P, x)
+
+"""
     get_pdf(P)
 
 Returns the pdf of `P` as a `Vector{Float64}`, where `pdf[i]` is the probability
@@ -86,14 +93,14 @@ function get_cdf(P::AbstractBinaryVectorDistribution)
 end
 
 """
-    random_exact(P, n_sample)
+    random(P, n_sample)
 
-Internally-used function for using a naive sampling method to draw random
-vectors from a distribution. Relies on an implementation of `get_cdf` for the
-distribution (so, don't use with distributions on more than ~20 neurons)
+Naive sampling method to draw random vectors from a distribution. Relies on an
+implementation of `get_cdf` for the distribution (so, don't use with distributions on more
+than ~20 neurons). Numerical accuracy not guaranteed. Returns a `BitMatrix`.
 
 """
-function _random_exact(P::AbstractBinaryVectorDistribution, n_samples::Int=1)
+function random(P::AbstractBinaryVectorDistribution, n_samples=1)
     X = falses(n_bits(P), n_samples)
     r = rand(n_samples)
     cdf = get_cdf(P)

@@ -54,4 +54,4 @@ expectation_matrix(DD::DataDistribution) = DD.X * DD.X' / size(DD.X,2)
 entropy(DD::DataDistribution) = -sum_kbn([p * log(p) for p in nonzeros(DD.P)])
 entropy2(DD::DataDistribution) = -sum_kbn([p * log2(p) for p in nonzeros(DD.P)])
 
-random(DD::DataDistribution, n_samples::Int=1) = _random_exact(DD, n_samples)
+# random(DD::DataDistribution, n_samples::Int=1) = _random_exact(DD, n_samples)

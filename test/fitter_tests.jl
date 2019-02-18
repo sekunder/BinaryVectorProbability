@@ -92,15 +92,20 @@ using BinaryVectorProbability
 using Spikes, Optim
 Base.Random.srand(170017)
 
-funcs = [t -> 1 + k + (k/4) * sin(t + pi/k) + (k/4) * cos(t/k) for k = 1:10]
-TT = [inhomogeneous_poisson_process(f.(0:0.01:3000), 0.01) for f in funcs]
+N_neurons = 10
+funcs = [t -> 1 + k + (k/4) * sin(t + pi/k) + (k/4) * cos(t/k) for k = 1:N_neurons]
+TT = [inhomogeneous_poisson_process(f.(0:0.01:2000), 0.01) for f in funcs]
 Sp = SpikeTrains(TT)
 X = transpose(raster(Sp, 0.020))
 
 P_1 = first_order_model(X)
-P_2_MPF = second_order_model(X; verbose=2, show_every=1, allow_f_increases=true)
-J0_new = P_2_MPF.J + Diagonal(P_2_MPF.theta)
-J0 = P_2_MPF.metadata[:J0]
+P_N = data_model(X)
+results = [];
+P_2_L = second_order_model(X; verbose=2, show_every=1, allow_f_increases=false, res=results, store_trace=true, J0=zeros(N_neurons,N_neurons))
+P_2_f_incr = second_order_model(X; verbose=2, show_every=1, allow_f_increases=true, res=results, J0=zeros(N_neurons,N_neurons))
+P_2_Hessian = second_order_model(X; algorithm=Optim.Newton(), verbose=2, show_every=1, allow_f_increases=false, res=results, store_trace=true, J0=zeros(N_neurons,N_neurons))
+# J0_new = P_2_MPF.J + Diagonal(P_2_MPF.theta)
+# J0 = P_2_MPF.metadata[:J0]
 P_2_L = second_order_model(X; verbose=2, allow_f_increases=true, J0=J0)
 P_2_different_m = second_order_model(X; verbose=2, J0=J0, algorithm=LBFGS(m=20))
 P_2_different_m_increase = second_order_model(X; verbose=2, J0=J0, algorithm=LBFGS(m=20), allow_f_increases=true)
